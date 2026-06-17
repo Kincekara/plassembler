@@ -1578,12 +1578,8 @@ def long(
         canu_nano_or_pacbio = "nanopore"
 
         if pacbio_model != "nothing":
-            if pacbio_model == "--pacbio-hifi":
-                canu_nano_or_pacbio = "pacbio-hifi"
-                corrected_error_rate = 0.005
-            else:
-                canu_nano_or_pacbio = "pacbio"
-                corrected_error_rate = 0.045
+            canu_nano_or_pacbio = "pacbio"
+            corrected_error_rate = 0.045
         else:
             canu_nano_or_pacbio = "nanopore"
             # corrected error rate default will be 0.12
@@ -1626,7 +1622,7 @@ def long(
 
         # this is default == run unicycler after canu -correct and removing low entropy repeat reads
         else:
-            assembler = "unicycler"
+            assembler = "unicycler"            
 
             # correct reads with canu
 
@@ -1640,31 +1636,38 @@ def long(
             )
             filter_entropy_fastqs(plasmidfastqs, entropy_filtered_fastq)
 
-            logger.info("Correcting reads with canu prior to running Unicycler.")
+            # correct reads in not hifi
+            if pacbio_model != "--pacbio-hifi":
 
-            try:
-                run_canu_correct(
-                    threads,
-                    logdir,
-                    entropy_filtered_fastq,
-                    canu_output_dir,
-                    canu_nano_or_pacbio,
-                    total_flye_plasmid_length,
-                    corrected_error_rate,
-                    coverage,
-                )
-                # convert the corrected .fasta.gz from Canu to fastq
-                canu_reads: Path = (
-                    Path(canu_output_dir) / "canu.correctedReads.fasta.gz"
-                )
-                corrected_fastqs: Path = Path(outdir) / "corrected_plasmid_long.fastq"
-                corrected_fasta_to_fastq(canu_reads, corrected_fastqs)
-            except:
-                logger.warning("Advancing with uncorrected reads")
-                corrected_fastqs = entropy_filtered_fastq
+                logger.info("Correcting reads with canu prior to running Unicycler.")
+            
+                try:
+                    run_canu_correct(
+                        threads,
+                        logdir,
+                        entropy_filtered_fastq,
+                        canu_output_dir,
+                        canu_nano_or_pacbio,
+                        total_flye_plasmid_length,
+                        corrected_error_rate,
+                        coverage,
+                    )
+                    # convert the corrected .fasta.gz from Canu to fastq
+                    canu_reads: Path = (
+                        Path(canu_output_dir) / "canu.correctedReads.fasta.gz"
+                    )
+                    corrected_fastqs: Path = Path(outdir) / "corrected_plasmid_long.fastq"
+                    corrected_fasta_to_fastq(canu_reads, corrected_fastqs)
+                except:
+                    logger.warning("Advancing with uncorrected reads")
+                    corrected_fastqs = entropy_filtered_fastq
 
-            # remove canu directory
-            remove_directory(canu_output_dir)
+                # remove canu directory
+                remove_directory(canu_output_dir)
+
+            else:
+                logger.warning("HiFi reads, advancing with uncorrected reads")
+                corrected_fastqs = entropy_filtered_fastq        
 
             unicycler_dir: Path = Path(outdir) / "unicycler_output"
             run_unicycler_long(
