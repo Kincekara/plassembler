@@ -1666,7 +1666,7 @@ def long(
                 remove_directory(canu_output_dir)
 
             else:
-                logger.warning("HiFi reads, advancing with uncorrected reads")
+                logger.info("HiFi reads, advancing with uncorrected reads")
                 corrected_fastqs = entropy_filtered_fastq        
 
             unicycler_dir: Path = Path(outdir) / "unicycler_output"
